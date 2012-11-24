@@ -31,6 +31,7 @@ import Graphics.Canvas.Base
 import Graphics.Canvas.BBox
 import Graphics.Canvas.Util
 
+
 -- | Create a blank canvas
 makeCanvas :: Int
            -- ^ Height
@@ -66,10 +67,8 @@ roundPredicate !(Z :. cy :. cx) !r !(Z :. y :. x) =
     sqrt (fromIntegral ((x - cx) ^ 2 + (y - cy) ^ 2)) <= fromIntegral r
 
 
-
--- | Operations which change a portion of canvas within a bounding box
--- which depends on the point where the tool was applied (the click
--- point).
+-- | Change a portion of a canvas within a bounding box which depends
+-- on the point where the tool was applied (the click point).
 brushOperation :: (Point -> BBox)
               -- ^ Compute the bounding box of operation given the
               -- click point.
@@ -101,7 +100,6 @@ brushOperation bboxFunction newPixelFunction =
           return (Canvas newArr, bb)
 
 
-
 roundBrush :: Int -> Pixel -> Tool
 roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
     where
@@ -109,4 +107,3 @@ roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
           if roundPredicate clickPoint radius testPoint
           then value
           else targetArr ! testPoint
-
