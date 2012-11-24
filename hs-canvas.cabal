@@ -22,7 +22,10 @@ library
   exposed-modules:
     Graphics.Canvas
 
-  -- other-modules:
+  other-modules:
+    Graphics.Canvas.Base
+    Graphics.Canvas.BBox
+    Graphics.Canvas.Util
 
   build-depends:
     base               == 4.6.*,
