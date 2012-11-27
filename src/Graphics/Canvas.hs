@@ -29,8 +29,6 @@ import Control.Monad.ST
 
 import Data.Array.Repa as R hiding ((++))
 
-import qualified Data.Vector.Unboxed as VU
-
 import Graphics.Canvas.Base
 import Graphics.Canvas.BBox
 import Graphics.Canvas.Tools
@@ -45,8 +43,9 @@ makeCanvas :: Int
            -- ^ Initial state for every pixel of canvas.
            -> Canvas
 makeCanvas height width initial =
-    Canvas $ R.fromUnboxed (R.ix2 height width) $
-    VU.replicate (height * width) initial
+    runST $ liftM Canvas $ 
+    R.computeUnboxedP $
+    R.fromFunction (R.ix2 height width) (\_ -> initial)
 
 
 getRegion :: BBox
