@@ -26,7 +26,6 @@ import Data.Array.Repa.Eval
 
 import qualified Data.Vector.Generic.Mutable as VG
 
-import Data.Word
 import GHC.Base
 
 import Graphics.Canvas.Base

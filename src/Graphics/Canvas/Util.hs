@@ -11,8 +11,6 @@ import Control.Monad.Primitive
 import Data.Array.Repa as R hiding ((++))
 
 import qualified Data.Vector.Unboxed as VU
-import qualified Data.Vector.Generic as VG
-import qualified Data.Vector.Generic.Mutable as VG
 
 
 -- | Convert an immutable Repa array to a mutable vector.

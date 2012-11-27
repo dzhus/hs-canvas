@@ -19,7 +19,7 @@ import Graphics.Canvas.Base
 
 
 -- | Bounding box on a canvas, given by bottom-left and top-right
--- points.
+-- points. Edges of the box are filled.
 newtype BBox = BBox (Point, Point)
 
 
