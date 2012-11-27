@@ -9,7 +9,6 @@ module Graphics.Canvas.BBox
     , ClampedBBox(..)
 
     , clampBBox
-    , roundBBox
     )
 
 where
@@ -26,18 +25,6 @@ newtype BBox = BBox (Point, Point)
 
 -- | Bounding box fully covered by the associated canvas.
 newtype ClampedBBox = ClampedBBox BBox
-
-
--- | Bounding box for a round brush.
-roundBBox :: Int
-          -- ^ Radius
-          -> Point -> BBox
-roundBBox r (Z :. cy :. cx) =
-    let
-        tl = Z :. cy - r :. cx - r
-        br = Z :. cy + r :. cx + r
-    in
-      BBox (tl, br)
 
 
 -- | Clamp bounding box limits to fit in canvas.

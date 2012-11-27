@@ -21,9 +21,10 @@ library
 
   exposed-modules:
     Graphics.Canvas
+    Graphics.Canvas.Base
+    Graphics.Canvas.Tools
 
   other-modules:
-    Graphics.Canvas.Base
     Graphics.Canvas.BBox
     Graphics.Canvas.Util
 
