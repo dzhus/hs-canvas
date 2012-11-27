@@ -32,7 +32,7 @@ type Point = DIM2
 
 
 -- | State of a single pixel.
-newtype Pixel = Pixel (Word8, Word8, Word8)
+newtype Pixel = RGBPixel (Word8, Word8, Word8)
 
 
 type PixelData = Array U DIM2 Pixel
