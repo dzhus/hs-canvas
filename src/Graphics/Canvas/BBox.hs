@@ -18,7 +18,7 @@ import Data.Array.Repa as R hiding ((++))
 import Graphics.Canvas.Base
 
 
--- | Bounding box on a canvas, given by top-left and bottom-right
+-- | Bounding box on a canvas, given by bottom-left and top-right
 -- points.
 newtype BBox = BBox (Point, Point)
 
