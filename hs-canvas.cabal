@@ -23,6 +23,7 @@ library
     Graphics.Canvas
     Graphics.Canvas.Base
     Graphics.Canvas.Tools
+    Graphics.Canvas.DevIL
 
   other-modules:
     Graphics.Canvas.BBox
@@ -32,4 +33,5 @@ library
     base               == 4.6.*,
     primitive          == 0.5.*,
     repa               == 3.2.*,
+    repa-devil         == 0.3.*,
     vector             == 0.10.*
