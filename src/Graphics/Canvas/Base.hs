@@ -32,14 +32,14 @@ type Point = DIM2
 
 
 -- | State of a single pixel.
-newtype Pixel = RGBPixel (Word8, Word8, Word8)
+newtype Pixel = RGBPixel (Word8, Word8, Word8) deriving Show
 
 
 type PixelData = Array U DIM2 Pixel
 
 
 -- | Canvas is a rectangular region holding pixel data.
-newtype Canvas = Canvas PixelData
+newtype Canvas = Canvas PixelData deriving Show
 
 
 deriving instance (VG.Vector VU.Vector Pixel)

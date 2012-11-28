@@ -20,11 +20,11 @@ import Graphics.Canvas.Base
 
 -- | Bounding box on a canvas, given by bottom-left and top-right
 -- points. Edges of the box are filled.
-newtype BBox = BBox (Point, Point)
+newtype BBox = BBox (Point, Point) deriving Show
 
 
 -- | Bounding box fully covered by the associated canvas.
-newtype ClampedBBox = ClampedBBox BBox
+newtype ClampedBBox = ClampedBBox BBox deriving Show
 
 
 -- | Clamp bounding box limits to fit in canvas.
