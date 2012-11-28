@@ -13,6 +13,7 @@ module Graphics.Canvas.Tools
 
     -- * Predefined tools
     , roundBrush
+    , pixel
 
     -- * Tool helpers
     , brushOperation
@@ -23,6 +24,7 @@ where
 
 import Data.Array.Repa as R hiding ((++))
 import Data.Array.Repa.Eval
+import Data.Array.Repa.Shape
 
 import qualified Data.Vector.Generic.Mutable as VG
 
@@ -38,7 +40,7 @@ import Graphics.Canvas.Util
 type ToolOperation = Point -> Canvas -> IO ClampedBBox
 
 
--- | An operation which can be applied to canvas.
+-- | A tool with certain parameters which can be applied to canvas.
 data Tool = Tool { apply :: ToolOperation
                  }
 
@@ -53,6 +55,10 @@ roundBBox r (Z :. cy :. cx) =
         br = Z :. cy + r :. cx + r
     in
       BBox (tl, br)
+
+
+pointBBox :: Point -> ClampedBBox
+pointBBox p = ClampedBBox $ BBox (p, p)
 
 
 -- | Predicate for points within specified distance from central
@@ -101,10 +107,30 @@ brushOperation bboxFunction newPixelFunction =
           return bb
 
 
-roundBrush :: Int -> Pixel -> Tool
+roundBrush :: Int
+           -- ^ Radius.
+           -> Pixel
+           -- ^ Color.
+           -> Tool
 roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
     where
       f !targetArr !clickPoint !testPoint =
           if roundPredicate clickPoint radius testPoint
           then value
           else targetArr ! testPoint
+
+
+pixel :: Pixel
+      -- ^ Color.
+      -> Tool
+pixel !value =
+    Tool $ \clickPoint (Canvas targetArr) ->
+        let
+            fullShape = extent targetArr
+            n = toIndex fullShape clickPoint
+            bb = pointBBox clickPoint
+        in do
+          mvec <- unsafeThawArr targetArr
+          VG.unsafeWrite mvec n value
+          _ <- unsafeFreezeArr fullShape mvec
+          return bb

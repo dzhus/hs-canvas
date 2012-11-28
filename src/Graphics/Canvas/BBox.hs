@@ -24,6 +24,9 @@ newtype BBox = BBox (Point, Point) deriving Show
 
 
 -- | Bounding box fully covered by the associated canvas.
+--
+-- Use the constructor directly with care and prefer 'clampBBox'
+-- instead.
 newtype ClampedBBox = ClampedBBox BBox deriving Show
 
 
