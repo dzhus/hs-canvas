@@ -54,10 +54,10 @@ getRegion :: BBox
           -> Canvas
 getRegion bbox c@(Canvas arr) =
     let
-        (ClampedBBox (BBox ((Z :. y0 :. x0), (Z :. y1 :. x1)))) =
+        (ClampedBBox (BBox (Z :. y0 :. x0, Z :. y1 :. x1))) =
             clampBBox bbox c
         newArr = R.fromFunction 
                  (R.ix2 (y1 - y0 + 1) (x1 - x0 + 1)) $
-                 \(Z :. y :. x) -> arr ! (R.ix2 (y + y0) (x + x0))
+                 \(Z :. y :. x) -> arr ! R.ix2 (y + y0) (x + x0)
     in runST $
       liftM Canvas $ R.computeUnboxedP newArr
