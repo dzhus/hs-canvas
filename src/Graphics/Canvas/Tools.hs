@@ -24,7 +24,6 @@ where
 
 import Data.Array.Repa as R hiding ((++))
 import Data.Array.Repa.Eval
-import Data.Array.Repa.Shape
 
 import qualified Data.Vector.Generic.Mutable as VG
 
@@ -35,9 +34,13 @@ import Graphics.Canvas.BBox
 import Graphics.Canvas.Util
 
 
--- | Unsafe operation which applies the tool at a point of a canvas.
--- Original canvas is modified. Result is a region which changed.
-type ToolOperation = Point -> Canvas -> IO ClampedBBox
+-- | Unsafe operation which changes a portion of a canvas. Original
+-- canvas is modified. Result is a region which has been changed.
+type Action = Canvas -> IO ClampedBBox
+
+
+data ToolOperation = PointOperation (Point -> Action)
+                     -- ^ Operation applied at a point.
 
 
 -- | A tool with certain parameters which can be applied to canvas.
@@ -84,7 +87,7 @@ brushOperation :: (Point -> BBox)
               -- with the existing canvas data, the click point and a
               -- point within the bounding box.
               -> ToolOperation
-brushOperation bboxFunction newPixelFunction =
+brushOperation bboxFunction newPixelFunction = PointOperation $
     \(!clickPoint) (!c@(Canvas targetArr)) ->
         let
             !fullShape@(Z :. _ :. (I# width)) = extent targetArr
@@ -123,8 +126,8 @@ roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
 pixel :: Pixel
       -- ^ Color.
       -> Tool
-pixel !value =
-    Tool $ \clickPoint (Canvas targetArr) ->
+pixel !value = Tool $ PointOperation $
+    \clickPoint (Canvas targetArr) ->
         let
             fullShape = extent targetArr
             n = toIndex fullShape clickPoint
