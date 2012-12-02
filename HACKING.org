@@ -1,0 +1,128 @@
+#+SEQ_TODO: MAYBE TODO IN_PROGRESS | DONE
+
+* hs-canvas, an implementation of raster canvas in Haskell
+
+** Goals
+
+   1. Provide library for collaborative realtime graphical editing
+      applications, supporting concurrent drawing to a raster canvas
+      using an assortment of tools.
+
+   2. Support parallelism for heavy image-wide operations.
+
+** Implementation
+
+*** Mutable canvas
+    Since the drawing sessions may potentially last for a prolonged
+    period of time, involving thousands of small updates to canvas, we
+    use destructive updates to maintain the current state of the
+    canvas.
+
+*** Tools
+**** DONE Round brush
+     
+**** TODO Elliptic brush
+
+     Just like a round brush, but with a more complex pixel function.
+
+**** DONE Pixel
+
+**** IN_PROGRESS [1/3] Line tool (or «apply-a-tool-along-a-set-of-pixels» tool)
+***** DONE Generate the set of pixels approximating a line
+      Bresenham's algorithm
+
+***** TODO ... circle
+
+***** TODO Given a tool and a set of pixels, apply the tool in every pixel
+      How do we calculate the bounding box?
+
+**** TODO Flood fill
+
+*** TODO Concurrency control
+    Every operation has a bounding box (which possibly covers the
+    whole canvas). When performing an operation, a region of canvas
+    corresponding to the bounding box of the operation is locked and
+    released when destructive update of canvas pixel data is finished.
+    This preserves the canvas from two concurrent actions changing
+    overlapping regions of the canvas. We'll start with pessimistic
+    locking.
+
+** Future work
+
+*** MAYBE Storable vs. Unboxed
+
+    Using Storable vectors for pixel data storage would allow us to
+    interface easily to existing (C) programs and libraries.
+
+    Gtk2Hs pixbuf currently has no support for importing a pixel
+    buffer from foreign pointer.
+
+    Gloss supports creation of bitmaps from foreign memory using the
+    'bitmapOfForeignPtr' function.
+
+*** TODO History support
+
+    We have already given up persistency for the sake of performance.
+    Consequently, most of actions have no inverse.
+
+
+    Thanks to region locking, history of all changes to a canvas is
+    linear:
+
+                actions
+                |    |
+    ø → A₁(S) → A₃ → A₂ → A₂ → A₁(S) → A₁ → A₁[S]
+           |                      |            |
+        snapshot               snapshot     cur.state
+
+    Current state of the canvas can be derived from the initial empty
+    state as a sequence of action applications, where every
+    application yields a new revision of the canvas.
+
+    Can the sequence be parallelized? — yes if we store bounding box
+    of every action.
+
+**** Open problems
+
+     - snapshotting strategy;
+
+     - snapshot pruning strategy;
+
+     - action pruning strategy.
+
+**** Rollback
+
+     Since we cannot append an inverse of an action to the history,
+     restoring a named revision requires rolling back to first
+     snapshot before this revision and rebuilding the top of history
+     tree using stored actions.
+
+**** Selective undo
+
+     Suppose we want to undo X (this makes sense, because users will
+     want to switch between global/local undo).
+
+     ø → A₁(S) → A₃ → A₂ → X → A₁(S) → A₁ → A₁[S]
+     0    1      2    3    4     5     6     7
+
+     1. Rollback to state just before X (3).
+
+     2. Rebuild state using all actions since X (5, 6, 7).
+
+     Note that if X does not conflict with any of its descendants, it
+     can be floated to the end of the history.
+
+**** Related papers
+
+     - [[file:~/cloud/mans/collab-drawing/Greenberg,%20Marwood%20-%20Real%20time%20groupware%20as%20a%20distributed%20system.pdf][Greenberg, Marwood - Real time groupware as a distributed system]]
+
+       (overview of approaches to locking & serialization in groupware
+       environments)
+
+     - [[file:~/cloud/mans/collab-drawing/Berlage%20-%20A%20Selective%20Undo%20Mechanism%20for%20GUIs%20Based%20On%20Command%20Objects.pdf][Berlage - A Selective Undo Mechanism for GUIs Based On Command Objects]]
+
+       (overview of undo strategies)
+
+     - [[file:~/cloud/mans/collab-drawing/Prakash,%20Knister%20-%20A%20framework%20for%20Undoing%20Actions%20in%20Collaborative%20Systems.pdf][Prakash, Knister - A framework for Undoing Actions in Collaborative Systems]]
+
+       (selective undo)
