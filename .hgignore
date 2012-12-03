@@ -1,2 +1,4 @@
-dist/*
+syntax: glob
+
 cabal-dev/*
+dist/*
