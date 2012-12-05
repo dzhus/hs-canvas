@@ -1,6 +1,7 @@
 name:                hs-canvas
 version:             0.1.0.0
 synopsis:            Two-dimensional canvas supporting raster operations
+homepage:            http://github.com/dzhus/hs-canvas/
 license:             BSD3
 license-file:        LICENSE
 author:              Dmitry Dzhus
@@ -8,6 +9,11 @@ maintainer:          <dima@dzhus.org>
 category:            Graphics
 build-type:          Simple
 cabal-version:       >=1.8
+tested-with:         GHC == 7.6.1
+
+source-repository head
+  type: git
+  location: http://github.com/dzhus/dsmc-tools/
 
 library
   ghc-options: -Wall -O2 -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
