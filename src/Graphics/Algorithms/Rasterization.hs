@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
 
 {-|
@@ -12,7 +13,7 @@ module Graphics.Algorithms.Rasterization
 
 where
 
-import qualified Data.Vector.Unboxed as VU
+import qualified Data.Vector.Generic as V
 
 
 -- | Bersenham's line algorithm.
@@ -22,15 +23,16 @@ import qualified Data.Vector.Unboxed as VU
 -- are ordered from start to end.
 --
 -- Simple point type is used to accomodate to non-canvas/non-Repa users.
-bresenham :: (Int, Int)
+bresenham :: V.Vector v (Int, Int) =>
+             (Int, Int)
           -- ^ Start point.
           -> (Int, Int)
           -- ^ End point.
-          -> VU.Vector (Int, Int)
+          -> v (Int, Int)
 bresenham p0@(x0, y0) p1@(x1, y1)
-  | slope > 1 = VU.map pointFlip $ bresenham (pointFlip p0) (pointFlip p1)
+  | slope > 1 = V.map pointFlip $ bresenham (pointFlip p0) (pointFlip p1)
   | otherwise =
-      VU.unfoldr
+      V.unfoldr
            (\(x, y, err) ->
                 let
                     !newErr' = err + slope
