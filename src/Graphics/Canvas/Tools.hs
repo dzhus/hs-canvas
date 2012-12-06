@@ -39,7 +39,7 @@ import Graphics.Canvas.Util
 
 -- | Unsafe operation which changes a portion of a canvas. Original
 -- canvas is modified. Result is a region which has been changed.
-type Action = Canvas -> IO ClampedBBox
+type Action = Canvas -> IO BBox
 
 
 type P1A = Point -> Action
@@ -67,8 +67,8 @@ roundBBox r (Z :. cy :. cx) =
       BBox (tl, br)
 
 
-pointBBox :: Point -> ClampedBBox
-pointBBox p = ClampedBBox $ BBox (p, p)
+pointBBox :: Point -> BBox
+pointBBox p = BBox (p, p)
 
 
 -- | Predicate for points within the specified distance from a central
@@ -98,23 +98,22 @@ brushOperation bboxFunction newPixelFunction =
     \(!clickPoint) (!c@(Canvas targetArr)) ->
         let
             !fullShape@(Z :. _ :. (I# width)) = extent targetArr
-
-            -- Calculate bounds for fillBlock2P
-            !bb@(ClampedBBox
-                 (BBox ((Z :. (I# y0) :. (I# x0)),
-                        (Z :. (I# y1) :. (I# x1))))) =
-                 clampBBox (bboxFunction clickPoint) c
-
-            !w0 = x1 -# x0 +# 1#
-            !h0 = y1 -# y0 +# 1#
-
             sourceFunction = newPixelFunction targetArr clickPoint
-        in do
-          mvec <- unsafeThawArr targetArr
-          fillBlock2P (VG.unsafeWrite mvec)
-                      sourceFunction width x0 y0 w0 h0
-          _ <- unsafeFreezeArr fullShape mvec
-          return bb
+        in
+          case clampBBox (bboxFunction clickPoint) c of
+            (Just
+             (bb@(BBox ((Z :. (I# y0) :. (I# x0)),
+                        (Z :. (I# y1) :. (I# x1)))))) ->
+             do
+              mvec <- unsafeThawArr targetArr
+              fillBlock2P (VG.unsafeWrite mvec)
+                          sourceFunction width x0 y0 w0 h0
+              _ <- unsafeFreezeArr fullShape mvec
+              return bb
+              where
+                !w0 = x1 -# x0 +# 1#
+                !h0 = y1 -# y0 +# 1#
+            Nothing -> error "Out of canvas bounds"
 
 
 roundBrush :: Int
