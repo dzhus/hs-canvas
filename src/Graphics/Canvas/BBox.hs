@@ -9,6 +9,7 @@ module Graphics.Canvas.BBox
     , ClampedBBox(..)
 
     , clampBBox
+    , wholeBBox
     )
 
 where
@@ -39,4 +40,9 @@ clampBBox (BBox (Z :. y0 :. x0, Z :. y1 :. x1)) (Canvas arr) =
         (y0'', x0'') = (max y0 y0', max x0 x0')
         (y1'', x1'') = (min y1 (y1' - 1), min x1 (x1' - 1))
     in
-      ClampedBBox $ BBox ((Z :. y0'' :. x0''), (Z :. y1'' :. x1''))
+      ClampedBBox $ BBox (R.ix2 y0'' x0'', R.ix2 y1'' x1'')
+
+
+-- | Bounding box which of a whole canvas.
+wholeBBox :: Canvas -> ClampedBBox
+wholeBBox (Canvas arr) = ClampedBBox $ BBox (R.ix2 0 0, extent arr)
