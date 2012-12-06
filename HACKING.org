@@ -84,11 +84,15 @@
 
 **** Open problems
 
-     - snapshotting strategy;
+     - snapshotting strategy (how often to make snapshots of the
+       canvas);
 
-     - snapshot pruning strategy;
+     - snapshot pruning strategy (how to keep history size under a
+       certain limit, dropping intermediate snapshots: scheduled
+       cleanups + probabilistic P(drop)~ln(-t) pruning);
 
-     - action pruning strategy.
+     - action pruning strategy (combine consecutive actions into a
+       snapshot).
 
 **** Rollback
 
