@@ -6,17 +6,20 @@ Tools to draw on a canvases and primitives to define your own tools.
 
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE GADTs #-}
 
 module Graphics.Canvas.Tools
     ( Tool(..)
     , Action
-    , P1A
-    , P2A
+    , Change
+    , SP
+    , DP
 
     -- * Predefined tools
     , roundBrush
     , pixel
+
+    -- * Using tools
+    , unsafeApply
 
     -- * Tool helpers
     , brushOperation
@@ -38,21 +41,26 @@ import Graphics.Canvas.Util
 
 
 -- | Unsafe operation which changes a portion of a canvas. Original
--- canvas is modified. Result is a region which has been changed.
-type Action = Canvas -> IO BBox
+-- canvas is modified.
+type Change = Canvas -> IO ()
 
 
-type P1A = Point -> Action
-type P2A = Point -> Point -> Action
+-- | When applying a tool to a canvas, we either obtain a bounding box
+-- and the operation, or fail in case action was generated with
+-- out-of-bounds input.
+type Action = Canvas -> Maybe (BBox, Change)
+
+
+-- | Input arity=1.
+type SP = Point
+
+
+-- | Input arity=2.
+type DP = (Point, Point)
 
 
 -- | A tool with certain parameters which can be applied to canvas.
-data Tool a where
-    -- We encode arity information in the type. We can match on arity
-    -- using one of the specific types of Tool. This still feels
-    -- awkward and newtypey.
-    PointTool    :: P1A -> Tool P1A
-    TwoPointTool :: P2A -> Tool P2A
+data Tool a = Tool (a -> Action)
 
 
 -- | Bounding box for a round brush.
@@ -67,6 +75,7 @@ roundBBox r (Z :. cy :. cx) =
       BBox (tl, br)
 
 
+-- | 1x1 bounding box of a point.
 pointBBox :: Point -> BBox
 pointBBox p = BBox (p, p)
 
@@ -91,37 +100,37 @@ brushOperation :: (Point -> BBox)
               -- click point.
               -> (PixelData -> Point -> Point -> Pixel)
               -- ^ Compute new pixels within the bounding box. Called
-              -- with the existing canvas data, the click point and a
-              -- point within the bounding box.
-              -> P1A
+              -- with the existing canvas data, the click point and an
+              -- every point within the bounding box.
+              -> (SP -> Action)
 brushOperation bboxFunction newPixelFunction =
-    \(!clickPoint) (!c@(Canvas targetArr)) ->
-        let
-            !fullShape@(Z :. _ :. (I# width)) = extent targetArr
-            sourceFunction = newPixelFunction targetArr clickPoint
-        in
-          case clampBBox (bboxFunction clickPoint) c of
-            (Just
-             (bb@(BBox ((Z :. (I# y0) :. (I# x0)),
-                        (Z :. (I# y1) :. (I# x1)))))) ->
-             do
-              mvec <- unsafeThawArr targetArr
-              fillBlock2P (VG.unsafeWrite mvec)
-                          sourceFunction width x0 y0 w0 h0
-              _ <- unsafeFreezeArr fullShape mvec
-              return bb
-              where
-                !w0 = x1 -# x0 +# 1#
-                !h0 = y1 -# y0 +# 1#
-            Nothing -> error "Out of canvas bounds"
+    \clickPoint c@(Canvas targetArr) ->
+        case clampBBox (bboxFunction clickPoint) c of
+          Just (bb@(BBox ((Z :. (I# y0) :. (I# x0)),
+                          (Z :. (I# y1) :. (I# x1))))) ->
+            Just (bb, change)
+            where
+              !fullShape@(Z :. _ :. (I# width)) = extent targetArr
+              !w0 = x1 -# x0 +# 1#
+              !h0 = y1 -# y0 +# 1#
+              sourceFunction = newPixelFunction targetArr clickPoint
+
+              change :: Change
+              change = \(Canvas arr) -> do
+                mvec <- unsafeThawArr arr
+                fillBlock2P (VG.unsafeWrite mvec)
+                            sourceFunction width x0 y0 w0 h0
+                _ <- unsafeFreezeArr fullShape mvec
+                return ()
+          Nothing -> Nothing
 
 
 roundBrush :: Int
            -- ^ Radius.
            -> Pixel
            -- ^ Color.
-           -> Tool P1A
-roundBrush !radius !value = PointTool $ brushOperation (roundBBox radius) f
+           -> Tool SP
+roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
     where
       f !targetArr !clickPoint !testPoint =
           if roundPredicate clickPoint radius testPoint
@@ -131,15 +140,24 @@ roundBrush !radius !value = PointTool $ brushOperation (roundBBox radius) f
 
 pixel :: Pixel
       -- ^ Color.
-      -> Tool P1A
-pixel !value = PointTool $
-    \clickPoint (Canvas targetArr) ->
+      -> Tool SP
+pixel !value = Tool $
+    \clickPoint c@(Canvas targetArr) ->
         let
+            bb = pointBBox clickPoint
             fullShape = extent targetArr
             n = toIndex fullShape clickPoint
-            bb = pointBBox clickPoint
-        in do
-          mvec <- unsafeThawArr targetArr
-          VG.unsafeWrite mvec n value
-          _ <- unsafeFreezeArr fullShape mvec
-          return bb
+            change :: Change
+            change = \(Canvas arr) -> do
+              mvec <- unsafeThawArr arr
+              VG.unsafeWrite mvec n value
+              _ <- unsafeFreezeArr fullShape mvec
+              return ()
+        in intersectBBox bb (wholeBBox c) >> return (bb, change)
+
+
+-- | Apply a tool to a canvas without checking bounds/locks.
+unsafeApply :: (Tool a) -> a -> Canvas -> IO ()
+unsafeApply (Tool act') inp' canvas =
+    case act' inp' canvas of
+      Just (_, ch) -> ch canvas
