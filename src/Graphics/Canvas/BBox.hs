@@ -14,9 +14,12 @@ module Graphics.Canvas.BBox
     , wholeBBox
     , joinBBox
     , intersectBBox
+    , overlaps
     )
 
 where
+
+import Data.Maybe
 
 import Data.Array.Repa as R hiding ((++))
 
@@ -106,3 +109,8 @@ intersectBBox (BBox (Z :. y0 :. x0, Z :. y1 :. x1))
         in
           Just $ BBox (R.ix2 y0'' x0'', R.ix2 y1'' x1'')
     | otherwise = Nothing
+
+
+-- | Check if two boxes overlap.
+overlaps :: BBox -> BBox -> Bool
+overlaps b1 b2 = isJust (intersectBBox b1 b2)
