@@ -102,13 +102,11 @@ joinBBox (BBox (Z :. y0 :. x0, Z :. y1 :. x1))
 intersectBBox :: BBox -> BBox -> Maybe BBox
 intersectBBox (BBox (Z :. y0 :. x0, Z :. y1 :. x1))
               (BBox (Z :. y0' :. x0', Z :. y1' :. x1'))
-    | x0' > x1, x1' < x0, y0' > y1, y1' < y0 =
-        let
-            (y0'', x0'') = (min y0 y0', min x0 x0')
-            (y1'', x1'') = (max y1 y1', max x1 x1')
-        in
-          Just $ BBox (R.ix2 y0'' x0'', R.ix2 y1'' x1'')
-    | otherwise = Nothing
+    | x0' > x1 || x1' < x0 || y0' > y1 || y1' < y0 = Nothing
+    | otherwise = Just $ BBox (R.ix2 y0'' x0'', R.ix2 y1'' x1'')
+                  where
+                    (y0'', x0'') = (max y0 y0', max x0 x0')
+                    (y1'', x1'') = (min y1 y1', min x1 x1')
 
 
 -- | Check if two boxes overlap.
