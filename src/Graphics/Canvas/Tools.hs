@@ -6,10 +6,13 @@ Tools to draw on a canvases and primitives to define your own tools.
 
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE GADTs #-}
 
 module Graphics.Canvas.Tools
     ( Tool(..)
-    , ToolOperation
+    , Action
+    , P1A
+    , P2A
 
     -- * Predefined tools
     , roundBrush
@@ -39,13 +42,17 @@ import Graphics.Canvas.Util
 type Action = Canvas -> IO ClampedBBox
 
 
-data ToolOperation = PointOperation (Point -> Action)
-                     -- ^ Operation applied at a point.
+type P1A = Point -> Action
+type P2A = Point -> Point -> Action
 
 
 -- | A tool with certain parameters which can be applied to canvas.
-data Tool = Tool { apply :: ToolOperation
-                 }
+data Tool a where
+    -- We encode arity information in the type. We can match on arity
+    -- using one of the specific types of Tool. This still feels
+    -- awkward and newtypey.
+    PointTool    :: P1A -> Tool P1A
+    TwoPointTool :: P2A -> Tool P2A
 
 
 -- | Bounding box for a round brush.
@@ -64,7 +71,7 @@ pointBBox :: Point -> ClampedBBox
 pointBBox p = ClampedBBox $ BBox (p, p)
 
 
--- | Predicate for points within specified distance from central
+-- | Predicate for points within the specified distance from a central
 -- point.
 roundPredicate :: Point
                -- ^ Central point.
@@ -86,8 +93,8 @@ brushOperation :: (Point -> BBox)
               -- ^ Compute new pixels within the bounding box. Called
               -- with the existing canvas data, the click point and a
               -- point within the bounding box.
-              -> ToolOperation
-brushOperation bboxFunction newPixelFunction = PointOperation $
+              -> P1A
+brushOperation bboxFunction newPixelFunction =
     \(!clickPoint) (!c@(Canvas targetArr)) ->
         let
             !fullShape@(Z :. _ :. (I# width)) = extent targetArr
@@ -114,8 +121,8 @@ roundBrush :: Int
            -- ^ Radius.
            -> Pixel
            -- ^ Color.
-           -> Tool
-roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
+           -> Tool P1A
+roundBrush !radius !value = PointTool $ brushOperation (roundBBox radius) f
     where
       f !targetArr !clickPoint !testPoint =
           if roundPredicate clickPoint radius testPoint
@@ -125,8 +132,8 @@ roundBrush !radius !value = Tool $ brushOperation (roundBBox radius) f
 
 pixel :: Pixel
       -- ^ Color.
-      -> Tool
-pixel !value = Tool $ PointOperation $
+      -> Tool P1A
+pixel !value = PointTool $
     \clickPoint (Canvas targetArr) ->
         let
             fullShape = extent targetArr
