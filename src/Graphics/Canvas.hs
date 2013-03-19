@@ -35,7 +35,7 @@ import Graphics.Canvas.BBox
 import Graphics.Canvas.Tools
 
 
--- | Create a blank canvas
+-- | Create a blank canvas.
 makeCanvas :: Int
            -- ^ Height
            -> Int
@@ -49,6 +49,8 @@ makeCanvas height width initial =
     R.fromFunction (R.ix2 height width) (\_ -> initial)
 
 
+-- | Get a subregion of a canvas, if canvas dimensions match the
+-- provided bounding box.
 getRegion :: BBox
           -> Canvas
           -- ^ Source canvas.
