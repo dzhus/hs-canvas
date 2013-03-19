@@ -38,14 +38,24 @@
 
 **** TODO Flood fill
 
-*** TODO Concurrency control
-    Every operation has a bounding box (which possibly covers the
-    whole canvas). When performing an operation, a region of canvas
-    corresponding to the bounding box of the operation is locked and
-    released when destructive update of canvas pixel data is finished.
-    This preserves the canvas from two concurrent actions changing
-    overlapping regions of the canvas. We'll start with pessimistic
-    locking.
+
+*** TODO Monadic interface
+**** A list of currently connected clients
+     For every client, current tool state is stored.
+     
+     Drawing requests from unregistered clients are declined
+**** TODO Concurrency control
+     Every operation has a bounding box (which possibly covers the
+     whole canvas). When performing an operation, a region of canvas
+     corresponding to the bounding box of the operation is locked and
+     released when destructive update of canvas pixel data is finished.
+     This preserves the canvas from two concurrent actions changing
+     overlapping regions of the canvas. We'll start with pessimistic
+     locking.
+
+** Miscellaneous
+
+*** TODO Tests for BBox functions
 
 ** Future work
 
@@ -65,11 +75,10 @@
     We have already given up persistency for the sake of performance.
     Consequently, most of actions have no inverse.
 
-
     Thanks to region locking, history of all changes to a canvas is
     linear:
 
-                actions
+                actions (index is user id)
                 |    |
     ø → A₁(S) → A₃ → A₂ → A₂ → A₁(S) → A₁ → A₁[S]
            |                      |            |
