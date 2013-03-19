@@ -19,6 +19,8 @@ module Graphics.Canvas
     , Tool(..)
     , roundBrush
     , pixel
+    , line
+    , unsafeApply
 
     , Pixel(..)
     )

@@ -17,6 +17,7 @@ module Graphics.Canvas.Tools
     -- * Predefined tools
     , roundBrush
     , pixel
+    , line
 
     -- * Using tools
     , unsafeApply
@@ -31,10 +32,15 @@ where
 import Data.Array.Repa as R hiding ((++))
 import Data.Array.Repa.Eval
 
-import qualified Data.Vector.Generic.Mutable as VG
+import Data.Maybe
+
+import qualified Data.Vector as V (Vector)
+import qualified Data.Vector.Generic as VG
+import qualified Data.Vector.Generic.Mutable as VGM
 
 import GHC.Base
 
+import Graphics.Algorithms.Rasterization
 import Graphics.Canvas.Base
 import Graphics.Canvas.BBox
 import Graphics.Canvas.Util
@@ -129,7 +135,7 @@ brushOperation bboxFunction newPixelFunction =
                     !h0 = y1 -# y0 +# 1#
                 in do
                   mvec <- unsafeThawArr arr'
-                  fillBlock2P (VG.unsafeWrite mvec)
+                  fillBlock2P (VGM.unsafeWrite mvec)
                               sourceFunction width x0 y0 w0 h0
                   _ <- unsafeFreezeArr fullShape mvec
                   return ()
@@ -162,11 +168,37 @@ pixel value = Tool $
               let fullShape = extent arr'
               let n = toIndex fullShape clickPoint
               mvec <- unsafeThawArr arr'
-              VG.unsafeWrite mvec n value
+              VGM.unsafeWrite mvec n value
               _ <- unsafeFreezeArr fullShape mvec
               return ()
         in
           intersectBBox bb (wholeBBox c) >> return (bb, commit)
+
+
+-- | Apply a tool along the line.
+line :: Tool SP -> Tool DP
+line (Tool act') = Tool $
+    \(Z :. p1y :. p1x, Z :. p2y :. p2x) canvas ->
+        let
+            points = bresenham (p1x, p1y) (p2x, p2y)
+
+            -- BBoxes & commits in every point of the line.
+            bcs :: V.Vector (BBox, Commit)
+            bcs = VG.map fromJust $ VG.filter isJust $
+                  VG.map (\(x, y) -> act' (R.ix2 x y) canvas) points
+        in
+          if VG.null bcs
+          then Nothing
+          else
+              let
+                  -- Cumulative commit
+                  commit = \canvas' ->
+                           VG.mapM_ (\(_, a) -> a canvas') bcs
+
+                  -- Cumulative bounding box
+                  bbox = VG.foldl1 joinBBox $ VG.map fst bcs
+              in
+                Just (bbox, commit)
 
 
 -- | Apply a tool to a canvas without checking of bounds and locks.
