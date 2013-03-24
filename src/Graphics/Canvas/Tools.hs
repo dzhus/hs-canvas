@@ -105,7 +105,10 @@ roundPredicate :: Point
                -- ^ Test point.
                -> Bool
 roundPredicate (Z :. cy :. cx) r (Z :. y :. x) =
-    sqrt (fromIntegral ((x - cx) ^ 2 + (y - cy) ^ 2)) <= fromIntegral r
+    sqrt (fromIntegral (rx * rx + ry * ry) :: Double) <= fromIntegral r
+    where
+      rx = x - cx
+      ry = y - cy
 
 
 -- | Make an action which changes a portion of a canvas within a
