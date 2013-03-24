@@ -12,7 +12,9 @@ main = do
   let !c = makeCanvas 10000 10000 (RGBPixel (255, 255, 255))
       !b = roundBrush 40 (RGBPixel (255, 0, 255))
       !p = pixel (RGBPixel (255, 0, 255))
-      !l = line p
+      !l = line b
+      !l2 = line p
       x = (BBox ((Z :. 400 :. 400), (Z :. 520 :. 520)))
   unsafeApply l ((Z :. 0 :. 0), (Z :. 9900 :. 9999)) c
+  unsafeApply l2 ((Z :. 0 :. 9999), (Z :. 9999 :. 0)) c
   runIL $ writeImage fileName (toImage c)
