@@ -37,3 +37,14 @@ library
     repa               == 3.2.*,
     repa-devil         == 0.3.*,
     vector             == 0.10.*
+
+executable canvas-test
+  main-is: src/Main.hs
+
+  ghc-options: -Wall -O2 -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
+
+  build-depends:
+    base               == 4.6.*,
+    hs-canvas,
+    repa               == 3.2.*,
+    repa-devil         == 0.3.*
