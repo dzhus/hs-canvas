@@ -10,11 +10,20 @@ module Graphics.Canvas.BBox
     ( BBox(..)
     , within
 
+
+    -- * Bounding box combinators
     , clampBBox
     , wholeBBox
+    , overlaps
+    -- ** Repositioning & central points
+    , centerBBoxTo
+    , centerPoint
+    -- ** Set operations
     , joinBBox
     , intersectBBox
-    , overlaps
+
+    -- * Repa interface
+    , bboxExtent
     )
 
 where
@@ -50,6 +59,33 @@ wholeBBox (Canvas arr) =
     BBox (R.ix2 0 0, R.ix2 (y - 1) (x - 1))
     where
       (Z :. y :. x) = extent arr
+
+
+-- | Reposition a bounding box @bb@ so that its center is in a point
+-- @p@. The following holds:
+--
+-- > centerPoint (centerBBoxTo bb p) = p
+centerBBoxTo :: BBox -> Point -> BBox
+centerBBoxTo (BBox (Z :. y0 :. x0, Z :. y1 :. x1)) (Z :. cy :. cx) =
+    BBox (R.ix2 (cy - yShift - yR) (cx - xShift - xR),
+          R.ix2 (cy + yShift) (cx + xShift))
+    where
+      -- Carry 1 to remainder for proper snapping
+      width = x1 - x0
+      (xShift, xR) = width `divMod` 2
+      height = y1 - y0
+      (yShift, yR) = height `divMod` 2
+
+
+-- | Return center point of a bounding box. If a dimension of the box
+-- is even, the corresponding coordinate of the center point is
+-- rounded up.
+centerPoint :: BBox -> Point
+centerPoint (BBox (Z :. y0 :. x0, Z :. y1 :. x1)) = 
+    R.ix2 (y0 + y + yR) (x0 + x + xR)
+    where
+      (x, xR) = (x1 - x0) `divMod` 2
+      (y, yR) = (y1 - y0) `divMod` 2
 
 
 -- | Join two bounding boxes, producing a bounding box covering every
@@ -112,3 +148,8 @@ intersectBBox (BBox (Z :. y0 :. x0, Z :. y1 :. x1))
 -- | Check if two boxes overlap.
 overlaps :: BBox -> BBox -> Bool
 overlaps b1 b2 = isJust (intersectBBox b1 b2)
+
+
+bboxExtent :: BBox -> DIM2
+bboxExtent (BBox (Z :. y0 :. x0, Z :. y1 :. x1)) =
+    R.ix2 (y1 - y0 + 1) (x1 - x0 + 1)

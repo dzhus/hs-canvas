@@ -10,8 +10,10 @@ Base types used by everyone else.
 
 module Graphics.Canvas.Base
     ( Point
+    , origin
     , Pixel(..)
     , PixelData
+    , PixelMask
     , Canvas(..)
     )
 
@@ -27,8 +29,12 @@ import Data.Word
 
 
 -- | Coordinates on a canvas. Components are row and column indices,
--- bottom-left canvas point is the origin.
+-- bottom-left canvas point is the 'origin'.
 type Point = DIM2
+
+
+origin :: Point
+origin = (Z :. 0 :. 0)
 
 
 -- | State of a single pixel.
@@ -36,6 +42,9 @@ newtype Pixel = RGBPixel (Word8, Word8, Word8) deriving Show
 
 
 type PixelData = Array U DIM2 Pixel
+
+
+type PixelMask = Array U DIM2 Bool
 
 
 -- | Canvas is a rectangular region holding pixel data.

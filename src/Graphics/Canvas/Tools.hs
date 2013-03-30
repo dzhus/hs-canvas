@@ -21,10 +21,6 @@ module Graphics.Canvas.Tools
 
     -- * Using tools
     , unsafeApply
-
-    -- * Tool helpers
-    , brushOperation
-    , roundPredicate
     )
 
 where
@@ -78,18 +74,6 @@ type SP = Point
 type DP = (Point, Point)
 
 
--- | Bounding box for a round brush.
-roundBBox :: Int
-          -- ^ Radius
-          -> Point -> BBox
-roundBBox r (Z :. cy :. cx) =
-    let
-        tl = Z :. cy - r :. cx - r
-        br = Z :. cy + r :. cx + r
-    in
-      BBox (tl, br)
-
-
 -- | 1x1 bounding box of a point.
 pointBBox :: Point -> BBox
 pointBBox p = BBox (p, p)
@@ -111,39 +95,54 @@ roundPredicate (Z :. cy :. cx) r (Z :. y :. x) =
       ry = y - cy
 
 
--- | Make an action which changes a portion of a canvas within a
--- bounding box which depends on the point where the tool was applied
--- (the click point).
-brushOperation :: (Point -> BBox)
-               -- ^ Compute the bounding box of operation given the
-               -- click point.
-               -> (PixelData -> Point -> Point -> Pixel)
-               -- ^ Compute new pixels within the bounding box. Called
-               -- with the existing canvas data, the click point and an
-               -- every point within the bounding box.
+-- | Make a tool which copies data from 'PixelData' to a portion of a
+-- canvas within a bounding box which depends on the point where the
+-- tool was applied (the click point).
+brushOperation :: PixelData
+               -- ^ Pixels to be copied onto a canvas at the click
+               -- point. Must have odd dimensions.
+               -> PixelMask
+               -- ^ Transparency data. Extent must match that of the
+               -- pixel data argument.
                -> (SP -> Action)
-brushOperation bboxFunction newPixelFunction =
-    \clickPoint c ->
-        case clampBBox (bboxFunction clickPoint) c of
+brushOperation !pixelData !pixelMask =
+    \clickPoint@(Z :. yc :. xc) canvas ->
+        case clampBBox (centerBBoxTo baseBBox clickPoint) canvas of
           Nothing -> Nothing
-          Just (bb@(BBox ((Z :. (I# y0) :. (I# x0)),
-                          (Z :. (I# y1) :. (I# x1))))) ->
+          Just bb@(BBox ((Z :. (I# y0) :. (I# x0)), _)) ->
             let
-              commit :: Commit
-              commit = \(Canvas arr') ->
-                let
-                    sourceFunction = newPixelFunction arr' clickPoint
-                    !fullShape@(Z :. _ :. (I# width)) = extent arr'
-                    !w0 = x1 -# x0 +# 1#
-                    !h0 = y1 -# y0 +# 1#
-                in do
-                  mvec <- unsafeThawArr arr'
-                  fillBlock2P (VGM.unsafeWrite mvec)
-                              sourceFunction width x0 y0 w0 h0
-                  _ <- unsafeFreezeArr fullShape mvec
-                  return ()
+                -- Convert click point coordinates to
+                commit :: Commit
+                commit = \(Canvas arr') ->
+                  let
+                      -- Calculate offsets of a point relative to
+                      -- the click point and use them to pick an
+                      -- element from source arrays.
+                      sourceFunction pt@(Z :. yt :. xt) =
+                          if pixelMask ! p'
+                          then pixelData ! p'
+                          else arr' ! pt
+                          where
+                            p' = (Z :. y' :. x')
+                            y' = yb - yt + yc
+                            x' = xb - xt + xc
+                      {-# INLINE sourceFunction #-}
+                      !fullShape@(Z :. _ :. (I# width)) = extent arr'
+                      !(Z :. (I# h0) :. (I# w0)) = bboxExtent bb
+                  in do
+                    mvec <- unsafeThawArr arr'
+                    fillBlock2P (VGM.unsafeWrite mvec)
+                                sourceFunction width x0 y0 w0 h0
+                    _ <- unsafeFreezeArr fullShape mvec
+                    return ()
             in
               Just (bb, commit)
+       where
+         (Z :. yBuf :. xBuf) = extent pixelData
+         baseBBox = BBox (origin, Z :. yBuf - 1 :. xBuf - 1)
+         -- Central point of pixel data & mask arrays
+         (Z :. yb :. xb) = centerPoint baseBBox
+
 
 
 roundBrush :: Int
@@ -151,12 +150,13 @@ roundBrush :: Int
            -> Pixel
            -- ^ Color.
            -> Tool SP
-roundBrush radius value = Tool $ brushOperation (roundBBox radius) f
+roundBrush radius value = Tool $ brushOperation pixelData pixelMask
     where
-      f targetArr clickPoint testPoint =
-          if roundPredicate clickPoint radius testPoint
-          then value
-          else targetArr ! testPoint
+      dim = 2 * radius + 1
+      ex = R.ix2 dim dim
+      pixelData = fromUnboxed ex $ VG.replicate (size ex) value
+      pixelMask = computeUnboxedS $
+                  fromFunction ex (roundPredicate (R.ix2 radius radius) radius)
 
 
 pixel :: Pixel
