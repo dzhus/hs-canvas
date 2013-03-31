@@ -11,6 +11,7 @@ Base types used by everyone else.
 module Graphics.Canvas.Base
     ( Point
     , origin
+    , distance
     , Pixel(..)
     , PixelData
     , PixelMask
@@ -35,6 +36,14 @@ type Point = DIM2
 
 origin :: Point
 origin = (Z :. 0 :. 0)
+
+
+distance :: Point -> Point -> Double
+distance (Z :. y1 :. x1) (Z :. y2 :. x2) =
+    sqrt $ fromIntegral (rx * rx + ry * ry)
+    where
+      rx = x1 - x2
+      ry = y1 - y2
 
 
 -- | State of a single pixel.

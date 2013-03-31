@@ -16,6 +16,7 @@ module Graphics.Canvas.Tools
 
     -- * Predefined tools
     , roundBrush
+    , ellipticBrush
     , pixel
     , line
 
@@ -81,18 +82,28 @@ pointBBox p = BBox (p, p)
 
 -- | Predicate for points within the specified distance from a central
 -- point.
-roundPredicate :: Point
+circlePredicate :: Point
                -- ^ Central point.
                -> Int
                -- ^ Distance.
                -> Point
                -- ^ Test point.
                -> Bool
-roundPredicate (Z :. cy :. cx) r (Z :. y :. x) =
-    sqrt (fromIntegral (rx * rx + ry * ry) :: Double) <= fromIntegral r
-    where
-      rx = x - cx
-      ry = y - cy
+circlePredicate c r pt = distance c pt <= fromIntegral r
+
+
+ellipsePredicate :: Point
+                 -- ^ First focal point.
+                 -> Point
+                 -- ^ Second focal point.
+                 -> Int
+                 -- ^ Maximum sum of distances from a test point to
+                 -- foci (major axis of the ellipse).
+                 -> Point
+                 -- ^ A test point.
+                 -> Bool
+ellipsePredicate f1 f2 r pt =
+    distance f1 pt + distance f2 pt <= fromIntegral r
 
 
 -- | Make a tool which copies data from 'PixelData' to a portion of a
@@ -154,9 +165,30 @@ roundBrush radius value = Tool $ brushOperation pixelData pixelMask
     where
       dim = 2 * radius + 1
       ex = R.ix2 dim dim
+      center = R.ix2 radius radius
       pixelData = fromUnboxed ex $ VG.replicate (size ex) value
       pixelMask = computeUnboxedS $
-                  fromFunction ex (roundPredicate (R.ix2 radius radius) radius)
+                  fromFunction ex (circlePredicate center radius)
+
+
+ellipticBrush :: Int
+              -- ^ Semi-major axis.
+              -> Double
+              -- ^ Eccentricity (between @0.0@ and @1.0@).
+              -> Pixel
+              -- ^ Color.
+              -> Tool SP
+ellipticBrush a ecc value = Tool $ brushOperation pixelData pixelMask
+    where
+      dim = 2 * a + 1
+      ex = R.ix2 dim dim
+      -- Focal distance
+      fr = round $ ecc * fromIntegral a
+      f1 = R.ix2 a (a - fr)
+      f2 = R.ix2 a (a + fr)
+      pixelData = fromUnboxed ex $ VG.replicate (size ex) value
+      pixelMask = computeUnboxedS $
+                  fromFunction ex (ellipsePredicate f1 f2 (2 * a))
 
 
 pixel :: Pixel

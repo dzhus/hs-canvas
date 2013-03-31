@@ -18,6 +18,7 @@ module Graphics.Canvas
     -- * Canvas operations
     , Tool(..)
     , roundBrush
+    , ellipticBrush
     , pixel
     , line
     , unsafeApply
