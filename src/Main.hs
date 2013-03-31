@@ -13,10 +13,11 @@ main = do
       !b = roundBrush 40 (RGBPixel (255, 0, 255))
       !b2 = ellipticBrush 40 0.75 (2 * pi / 3) (RGBPixel (0, 255, 255))
       !p = pixel (RGBPixel (0, 0, 0))
+      !n = nib 40 3 (pi / 12) (RGBPixel (40, 0, 30))
       !l = line b
       !l2 = line b2
       !lp = line p
-      !poly = polygon l2
+      !poly = polygon $ line n
       x = (BBox ((Z :. 400 :. 400), (Z :. 520 :. 520)))
   unsafeApply l ((Z :. 0 :. 0), (Z :. 999 :. 999)) c
   unsafeApply l2 ((Z :. 0 :. 999), (Z :. 999 :. 0)) c
@@ -26,7 +27,8 @@ main = do
   unsafeApply lp ((Z :. 500 :. 0), (Z :. 500 :. 999)) c
   unsafeApply poly [ (Z :. 200 :. 200)
                    , (Z :. 100 :. 700)
-                   , (Z :. 800 :. 800)
+                   , (Z :. 800 :. 900)
                    , (Z :. 700 :. 100)
+                   , (Z :. 200 :. 200)
                    ] c
   runIL $ writeImage fileName (toImage c)

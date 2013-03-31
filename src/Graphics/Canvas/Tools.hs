@@ -38,7 +38,6 @@ import Data.Array.Repa.Eval
 import Data.Maybe
 
 import qualified Data.Vector as V (Vector)
-import qualified Data.Vector.Unboxed as VU (elem)
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Generic.Mutable as VGM
 
@@ -225,9 +224,10 @@ ellipticBrush a ecc phi value = squareMaskTool dim value maskPred
 
 -- | Italic nib.
 nib :: Int
-    -- ^ Nib stroke width.
+    -- ^ Nib stroke width. Snapped up to the closest odd value when
+    -- even.
     -> Int
-    -- ^ Nib thickness.
+    -- ^ Nib thickness. Snapped up to the closest odd value when even.
     -> Double
     -- ^ Nib angle in radians (between @0.0@ and @pi@), used to
     -- produce oblique nibs. When this angle is zero, nib is held
@@ -237,14 +237,31 @@ nib :: Int
     -> Tool SP
 nib w t phi value = Tool $ brushOperation pixelData pixelMask
     where
+      t' = fromIntegral t
       w' = fromIntegral w
-      py = round $ w' * sin phi
-      px = round $ w' * cos phi
-      ex = R.ix2 (max 1 $ abs py) (max 1 $ abs px)
+      -- Mask extent and central point
+      py = abs (w' * sin phi) + abs (t' * cos phi)
+      px = abs (w' * cos phi) + abs (t' * sin phi)
+      cy = floor $ py / 2
+      cx = round $ px / 2
+
+      ex = R.ix2 (2 * cy + 1) (2 * cx + 1)
       pixelData = fromUnboxed ex $ VG.replicate (size ex) value
-      !nibPoints = bresenham (0, 0) (py, px)
+
+      -- Ortogonal vectors used to fill rotated rectangular area
+      (e1y, e1x) = (sin phi,   cos phi)
+      (e2y, e2x) = (cos phi,  -sin phi)
       pixelMask = computeUnboxedS $ fromFunction ex $
-                  \(Z :. y :. x) -> VU.elem (y, x) nibPoints
+                  \(Z :. y :. x) ->
+                      let
+                          -- (dy, dx) is a vector between test point and
+                          -- the center of the mask
+                          dx = fromIntegral $ x - cx
+                          dy = fromIntegral $ y - cy
+                          rx = abs $ dx * e1x + dy * e1y
+                          ry = abs $ dx * e2x + dy * e2y
+                      in
+                        rx <= w' / 2 && ry <= t' / 2
 
 
 pixel :: Pixel
