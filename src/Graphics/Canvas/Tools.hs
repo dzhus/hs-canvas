@@ -160,14 +160,11 @@ roundBrush :: Int
            -> Pixel
            -- ^ Color.
            -> Tool SP
-roundBrush radius value = Tool $ brushOperation pixelData pixelMask
+roundBrush radius value = squareMaskTool dim value maskPred
     where
       dim = 2 * radius + 1
-      ex = R.ix2 dim dim
       center = R.ix2 radius radius
-      pixelData = fromUnboxed ex $ VG.replicate (size ex) value
-      pixelMask = computeUnboxedS $
-                  fromFunction ex (circlePredicate center radius)
+      maskPred = circlePredicate center radius
 
 
 ellipticBrush :: Int
@@ -182,22 +179,30 @@ ellipticBrush :: Int
               -> Pixel
               -- ^ Color.
               -> Tool SP
-ellipticBrush a ecc phi value = Tool $ brushOperation pixelData pixelMask
+ellipticBrush a ecc phi value = squareMaskTool dim value maskPred
     where
       dim = 2 * a + 1
-      ex = R.ix2 dim dim
       a' = fromIntegral a
       -- Focal distance
-      fr = fromIntegral $ round $ ecc * a'
-      -- Semi-minor axis
-      b = sqrt $ (a' * a' ) * (1 - ecc * ecc) / 2
+      fr = fromIntegral (round $ ecc * a' :: Int)
       xShift = round $ fr * cos phi
       yShift = round $ fr * sin phi
       f1 = R.ix2 (a - yShift) (a - xShift)
       f2 = R.ix2 (a + yShift) (a + xShift)
+      maskPred = ellipsePredicate f1 f2 (2 * a)
+
+
+squareMaskTool :: Int
+               -> Pixel
+               -> (Point -> Bool)
+               -> Tool SP
+squareMaskTool dim value maskPred
+    | odd dim = Tool $ brushOperation pixelData pixelMask
+    | otherwise = error "Mask dimension must be odd"
+    where
+      ex = R.ix2 dim dim
       pixelData = fromUnboxed ex $ VG.replicate (size ex) value
-      pixelMask = computeUnboxedS $
-                  fromFunction ex (ellipsePredicate f1 f2 (2 * a))
+      pixelMask = computeUnboxedS $ fromFunction ex maskPred
 
 
 pixel :: Pixel
@@ -219,7 +224,7 @@ pixel value = Tool $
           intersectBBox bb (wholeBBox c) >> return (bb, commit)
 
 
--- | Apply a tool along the line.
+-- | Apply a tool along a line given by two endpoints.
 line :: Tool SP -> Tool DP
 line (Tool act') = Tool $
     \(Z :. p1y :. p1x, Z :. p2y :. p2x) canvas ->
