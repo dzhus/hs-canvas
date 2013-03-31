@@ -64,7 +64,7 @@ type Action = Canvas -> Maybe (BBox, Commit)
 --
 -- Tool is parametrized by an input type it expects to produce an
 -- action. Think clicks as inputs.
-data Tool a = Tool (a -> Action)
+newtype Tool a = Tool (a -> Action)
 
 
 -- | Input arity=1.
