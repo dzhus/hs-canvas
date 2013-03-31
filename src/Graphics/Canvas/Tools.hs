@@ -1,11 +1,11 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE MagicHash #-}
+
 {-|
 
 Tools to draw on a canvases and primitives to define your own tools.
 
 -}
-
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE MagicHash #-}
 
 module Graphics.Canvas.Tools
     ( Tool(..)
@@ -17,6 +17,7 @@ module Graphics.Canvas.Tools
     -- * Predefined tools
     , roundBrush
     , ellipticBrush
+    , squareMaskTool
     , pixel
     , line
 
@@ -92,6 +93,7 @@ circlePredicate :: Point
 circlePredicate c r pt = distance c pt <= fromIntegral r
 
 
+-- | Predicate for points within an ellipse given by the focal points.
 ellipsePredicate :: Point
                  -- ^ First focal point.
                  -> Point
@@ -107,14 +109,18 @@ ellipsePredicate f1 f2 r pt =
 
 
 -- | Make a tool which copies data from 'PixelData' to a portion of a
--- canvas within a bounding box which depends on the point where the
--- tool was applied (the click point).
+-- canvas at the point where the tool was applied (the click point).
 brushOperation :: PixelData
                -- ^ Pixels to be copied onto a canvas at the click
-               -- point. Must have odd dimensions.
+               -- point. Must have odd dimensions. Copying is
+               -- performed so that the central point of this array
+               -- matches the click point.
                -> PixelMask
                -- ^ Transparency data. Extent must match that of the
-               -- pixel data argument.
+               -- pixel data argument. If a value in this array is
+               -- True, then the corresponding pixel from pixel data
+               -- array is copied onto the canvas. Otherwise, the
+               -- original pixel value is preserved.
                -> (SP -> Action)
 brushOperation !pixelData !pixelMask =
     \clickPoint@(Z :. yc :. xc) canvas ->
@@ -192,9 +198,15 @@ ellipticBrush a ecc phi value = squareMaskTool dim value maskPred
       maskPred = ellipsePredicate f1 f2 (2 * a)
 
 
+-- | Produce a constant color tool with a square mask of given
+-- dimensions using the provided mask predicate.
 squareMaskTool :: Int
+               -- ^ Mask dimension, must be odd.
                -> Pixel
+               -- ^ Color.
                -> (Point -> Bool)
+               -- ^ A predicate used to build 'PixelMask' within the
+               -- square.
                -> Tool SP
 squareMaskTool dim value maskPred
     | odd dim = Tool $ brushOperation pixelData pixelMask

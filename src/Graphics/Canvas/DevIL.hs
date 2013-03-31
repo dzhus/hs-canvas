@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Graphics.Canvas.DevIL
     ( toImage
     )
@@ -15,7 +13,7 @@ import Data.Array.Repa.IO.DevIL
 import Graphics.Canvas.Base
 
 
--- | Convert canvas to a DevIL RGB image.
+-- | Convert a canvas to a DevIL RGB image.
 toImage :: Canvas -> Image
 toImage (Canvas arr) =
     let
