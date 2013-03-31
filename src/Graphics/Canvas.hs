@@ -53,8 +53,8 @@ makeCanvas height width initial =
     R.fromFunction (R.ix2 height width) (\_ -> initial)
 
 
--- | Get a subregion of a canvas, if canvas dimensions match the
--- provided bounding box.
+-- | Get a subregion of a canvas, if a provided bounding box fits its
+-- dimensions.
 getRegion :: BBox
           -> Canvas
           -- ^ Source canvas.
