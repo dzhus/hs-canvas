@@ -11,7 +11,7 @@ main = do
   (fileName:_) <- getArgs
   let !c = makeCanvas 1000 1000 (RGBPixel (255, 255, 255))
       !b = roundBrush 40 (RGBPixel (255, 0, 255))
-      !b2 = ellipticBrush 40 0.75 (RGBPixel (0, 255, 255))
+      !b2 = ellipticBrush 40 0.75 (2 * pi / 3) (RGBPixel (0, 255, 255))
       !p = pixel (RGBPixel (0, 0, 0))
       !l = line b
       !l2 = line b2

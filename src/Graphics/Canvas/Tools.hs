@@ -155,7 +155,6 @@ brushOperation !pixelData !pixelMask =
          (Z :. yb :. xb) = centerPoint baseBBox
 
 
-
 roundBrush :: Int
            -- ^ Radius.
            -> Pixel
@@ -175,17 +174,27 @@ ellipticBrush :: Int
               -- ^ Semi-major axis.
               -> Double
               -- ^ Eccentricity (between @0.0@ and @1.0@).
+              -> Double
+              -- ^ Brush angle in radians (between @0.0@ and @pi@).
+              -- When this angle is zero, major axis of the ellipse
+              -- will be aligned with positive direction of the
+              -- horizontal axis.
               -> Pixel
               -- ^ Color.
               -> Tool SP
-ellipticBrush a ecc value = Tool $ brushOperation pixelData pixelMask
+ellipticBrush a ecc phi value = Tool $ brushOperation pixelData pixelMask
     where
       dim = 2 * a + 1
       ex = R.ix2 dim dim
+      a' = fromIntegral a
       -- Focal distance
-      fr = round $ ecc * fromIntegral a
-      f1 = R.ix2 a (a - fr)
-      f2 = R.ix2 a (a + fr)
+      fr = fromIntegral $ round $ ecc * a'
+      -- Semi-minor axis
+      b = sqrt $ (a' * a' ) * (1 - ecc * ecc) / 2
+      xShift = round $ fr * cos phi
+      yShift = round $ fr * sin phi
+      f1 = R.ix2 (a - yShift) (a - xShift)
+      f2 = R.ix2 (a + yShift) (a + xShift)
       pixelData = fromUnboxed ex $ VG.replicate (size ex) value
       pixelMask = computeUnboxedS $
                   fromFunction ex (ellipsePredicate f1 f2 (2 * a))

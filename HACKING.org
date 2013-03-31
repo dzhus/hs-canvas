@@ -21,7 +21,8 @@
 *** Tools
 **** DONE Round brush
      
-**** IN_PROGRESS Elliptic brush
+**** DONE Elliptic brush
+     CLOSED: [2013-03-31]
 
      Just like a round brush, but with a more complex pixel function.
 
