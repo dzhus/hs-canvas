@@ -20,8 +20,9 @@ module Graphics.Canvas.Tools
     -- * Predefined tools
     , roundBrush
     , ellipticBrush
-    , squareMaskTool
     , pixel
+    , nib
+    , squareMaskTool
     , line
     , polygon
 
@@ -37,6 +38,7 @@ import Data.Array.Repa.Eval
 import Data.Maybe
 
 import qualified Data.Vector as V (Vector)
+import qualified Data.Vector.Unboxed as VU (elem)
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Generic.Mutable as VGM
 
@@ -219,6 +221,30 @@ ellipticBrush a ecc phi value = squareMaskTool dim value maskPred
       f1 = R.ix2 (a - yShift) (a - xShift)
       f2 = R.ix2 (a + yShift) (a + xShift)
       maskPred = ellipsePredicate f1 f2 (2 * a)
+
+
+-- | Italic nib.
+nib :: Int
+    -- ^ Nib stroke width.
+    -> Int
+    -- ^ Nib thickness.
+    -> Double
+    -- ^ Nib angle in radians (between @0.0@ and @pi@), used to
+    -- produce oblique nibs. When this angle is zero, nib is held
+    -- horizontally.
+    -> Pixel
+    -- ^ Color.
+    -> Tool SP
+nib w t phi value = Tool $ brushOperation pixelData pixelMask
+    where
+      w' = fromIntegral w
+      px = round $ w' * sin phi
+      py = round $ w' * cos phi
+      ex = R.ix2 (max 1 $ abs px) (max 1 $ abs py)
+      pixelData = fromUnboxed ex $ VG.replicate (size ex) value
+      !nibPoints = bresenham (0, 0) (px, py)
+      pixelMask = computeUnboxedS $ fromFunction ex $
+                  \(Z :. y :. x) -> VU.elem (y, x) nibPoints
 
 
 pixel :: Pixel

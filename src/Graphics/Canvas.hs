@@ -20,6 +20,7 @@ module Graphics.Canvas
     , roundBrush
     , ellipticBrush
     , pixel
+    , nib
     , line
     , polygon
     , unsafeApply
