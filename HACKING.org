@@ -39,7 +39,19 @@
 
 **** TODO Flood fill
 
+*** Parallelism
 
+    Brush tools require copying of a small 2D array onto a portion of
+    the canvas. We could use Repa's fillBlock2P to employ parallelism
+    on the tool level to speed up such copying, however this would
+    occupy all available threads, critically slowing down operations
+    potentially performed by other clients of the canvas. Moreover,
+    for practical reasons Repa disallows launching multiple parallel
+    computations (this would make no sense anyways since all chunking
+    and scheduling is performed statically prior to computation
+    launch), locking the whole thread gang instead. Therefore brush
+    tool operations are all single-threaded.
+    
 *** TODO Monadic interface
 **** A list of currently connected clients
      For every client, current tool state is stored.

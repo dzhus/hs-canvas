@@ -152,7 +152,7 @@ brushOperation !pixelData !pixelMask =
                       !(Z :. (I# h0) :. (I# w0)) = bboxExtent bb
                   in do
                     mvec <- unsafeThawArr arr'
-                    fillBlock2P (VGM.unsafeWrite mvec)
+                    fillBlock2S (VGM.unsafeWrite mvec)
                                 sourceFunction width x0 y0 w0 h0
                     _ <- unsafeFreezeArr fullShape mvec
                     return ()
