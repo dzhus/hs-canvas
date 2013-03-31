@@ -20,6 +20,7 @@ module Graphics.Canvas.Tools
     , squareMaskTool
     , pixel
     , line
+    , polygon
 
     -- * Using tools
     , unsafeApply
@@ -27,9 +28,10 @@ module Graphics.Canvas.Tools
 
 where
 
-import Data.Array.Repa as R hiding ((++))
+import Data.Array.Repa as R hiding ((++), map)
 import Data.Array.Repa.Eval
 
+import Data.List hiding (list)
 import Data.Maybe
 
 import qualified Data.Vector as V (Vector)
@@ -258,6 +260,25 @@ line (Tool act') = Tool $
 
                   -- Cumulative bounding box
                   bbox = VG.foldl1 joinBBox $ VG.map fst bcs
+              in
+                Just (bbox, commit)
+
+
+polygon :: Tool DP -> Tool [SP]
+polygon (Tool act') = Tool $
+    \pts@(_:ptail) canvas ->
+        let
+            lines = zip pts ptail
+            bcs = map fromJust $ filter isJust $
+                  map (\input -> act' input canvas) lines
+        in
+          if null bcs
+          then Nothing
+          else
+              let
+                  commit = \canvas' ->
+                           mapM_ (\(_, a) -> a canvas' ) bcs
+                  bbox = foldl1' joinBBox $ map fst bcs
               in
                 Just (bbox, commit)
 

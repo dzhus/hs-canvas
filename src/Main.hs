@@ -16,6 +16,7 @@ main = do
       !l = line b
       !l2 = line b2
       !lp = line p
+      !poly = polygon l2
       x = (BBox ((Z :. 400 :. 400), (Z :. 520 :. 520)))
   unsafeApply l ((Z :. 0 :. 0), (Z :. 999 :. 999)) c
   unsafeApply l2 ((Z :. 0 :. 999), (Z :. 999 :. 0)) c
@@ -23,4 +24,9 @@ main = do
   unsafeApply b2 (Z :. 500 :. 500) c
   unsafeApply lp ((Z :. 0 :. 500), (Z :. 999 :. 500)) c
   unsafeApply lp ((Z :. 500 :. 0), (Z :. 500 :. 999)) c
+  unsafeApply poly [ (Z :. 200 :. 200)
+                   , (Z :. 100 :. 700)
+                   , (Z :. 800 :. 800)
+                   , (Z :. 700 :. 100)
+                   ] c
   runIL $ writeImage fileName (toImage c)

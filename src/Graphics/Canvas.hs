@@ -21,6 +21,7 @@ module Graphics.Canvas
     , ellipticBrush
     , pixel
     , line
+    , polygon
     , unsafeApply
 
     , Pixel(..)
