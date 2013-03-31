@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 {-|
 
 All about bounding boxes.
