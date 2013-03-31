@@ -41,7 +41,7 @@ library
 executable canvas-test
   main-is: src/Main.hs
 
-  ghc-options: -Wall -O2 -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
+  ghc-options: -Wall -O2 -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3 -eventlog
 
   build-depends:
     base               == 4.6.*,

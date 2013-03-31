@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
 
@@ -31,7 +34,6 @@ where
 import Data.Array.Repa as R hiding ((++), map)
 import Data.Array.Repa.Eval
 
-import Data.List hiding (list)
 import Data.Maybe
 
 import qualified Data.Vector as V (Vector)
@@ -240,47 +242,49 @@ pixel value = Tool $
 
 -- | Apply a tool along a line given by two endpoints.
 line :: Tool SP -> Tool DP
-line (Tool act') = Tool $
-    \(Z :. p1y :. p1x, Z :. p2y :. p2x) canvas ->
-        let
-            points = bresenham (p1x, p1y) (p2x, p2y)
+line = raise
 
-            -- BBoxes & commits in every point of the line.
+
+-- | Apply a tool along lines of a polygon given by vertices, in that
+-- order.
+polygon :: Tool DP -> Tool [SP]
+polygon = raise
+
+
+-- | Raise arity of a tool.
+raise :: (Reduce b a) => Tool a -> Tool b
+raise (Tool act') = Tool $
+    \input canvas ->
+        let
+            rInputs = reduce input
             bcs :: V.Vector (BBox, Commit)
             bcs = VG.map fromJust $ VG.filter isJust $
-                  VG.map (\(x, y) -> act' (R.ix2 x y) canvas) points
+                  VG.map (\i -> act' i canvas) rInputs
         in
           if VG.null bcs
           then Nothing
           else
               let
                   -- Cumulative commit
-                  commit = \canvas' ->
-                           VG.mapM_ (\(_, a) -> a canvas') bcs
-
+                  commit = \canvas' -> VG.mapM_ (\(_, a) -> a canvas') bcs
                   -- Cumulative bounding box
                   bbox = VG.foldl1 joinBBox $ VG.map fst bcs
               in
                 Just (bbox, commit)
 
 
-polygon :: Tool DP -> Tool [SP]
-polygon (Tool act') = Tool $
-    \pts@(_:ptail) canvas ->
-        let
-            lines = zip pts ptail
-            bcs = map fromJust $ filter isJust $
-                  map (\input -> act' input canvas) lines
-        in
-          if null bcs
-          then Nothing
-          else
-              let
-                  commit = \canvas' ->
-                           mapM_ (\(_, a) -> a canvas' ) bcs
-                  bbox = foldl1' joinBBox $ map fst bcs
-              in
-                Just (bbox, commit)
+class Reduce higher lower where
+    reduce :: higher -> V.Vector lower
+
+
+instance Reduce DP SP where
+    reduce (Z :. p1y :. p1x, Z :. p2y :. p2x) =
+        VG.map (\(y, x) -> R.ix2 y x) $
+        bresenham (p1x, p1y) (p2x, p2y)
+
+
+instance Reduce [SP] DP where
+    reduce pts@(_:ptail) = VG.zip (VG.fromList pts) (VG.fromList ptail)
 
 
 -- | Apply a tool to a canvas without checking of bounds and locks.
