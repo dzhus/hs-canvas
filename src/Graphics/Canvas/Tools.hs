@@ -165,6 +165,25 @@ brushOperation !pixelData !pixelMask =
          (Z :. yb :. xb) = centerPoint baseBBox
 
 
+-- | Produce a constant color tool with a square mask of given
+-- dimensions using the provided mask predicate.
+squareMaskTool :: Int
+               -- ^ Mask dimension, must be odd.
+               -> Pixel
+               -- ^ Color.
+               -> (Point -> Bool)
+               -- ^ A predicate used to build 'PixelMask' within the
+               -- square.
+               -> Tool SP
+squareMaskTool dim value maskPred
+    | odd dim = Tool $ brushOperation pixelData pixelMask
+    | otherwise = error "Mask dimension must be odd"
+    where
+      ex = R.ix2 dim dim
+      pixelData = fromUnboxed ex $ VG.replicate (size ex) value
+      pixelMask = computeUnboxedS $ fromFunction ex maskPred
+
+
 roundBrush :: Int
            -- ^ Radius.
            -> Pixel
@@ -202,25 +221,6 @@ ellipticBrush a ecc phi value = squareMaskTool dim value maskPred
       maskPred = ellipsePredicate f1 f2 (2 * a)
 
 
--- | Produce a constant color tool with a square mask of given
--- dimensions using the provided mask predicate.
-squareMaskTool :: Int
-               -- ^ Mask dimension, must be odd.
-               -> Pixel
-               -- ^ Color.
-               -> (Point -> Bool)
-               -- ^ A predicate used to build 'PixelMask' within the
-               -- square.
-               -> Tool SP
-squareMaskTool dim value maskPred
-    | odd dim = Tool $ brushOperation pixelData pixelMask
-    | otherwise = error "Mask dimension must be odd"
-    where
-      ex = R.ix2 dim dim
-      pixelData = fromUnboxed ex $ VG.replicate (size ex) value
-      pixelMask = computeUnboxedS $ fromFunction ex maskPred
-
-
 pixel :: Pixel
       -- ^ Color.
       -> Tool SP
@@ -240,15 +240,21 @@ pixel value = Tool $
           intersectBBox bb (wholeBBox c) >> return (bb, commit)
 
 
--- | Apply a tool along a line given by two endpoints.
-line :: Tool SP -> Tool DP
-line = raise
+-- | Class of tool input arities for which an @n@-ary input may be
+-- tranformed (exploded) into a vector of @(n-1)@-ary inputs.
+class Explode higher lower where
+    reduce :: higher -> V.Vector lower
 
 
--- | Apply a tool along lines of a polygon given by vertices, in that
--- order.
-polygon :: Tool DP -> Tool [SP]
-polygon = raise
+instance Explode DP SP where
+    reduce (Z :. p1y :. p1x, Z :. p2y :. p2x) =
+        VG.map (\(y, x) -> R.ix2 y x) $
+        bresenham (p1x, p1y) (p2x, p2y)
+
+
+instance Explode [SP] DP where
+    reduce pts@(_:ptail) = VG.zip (VG.fromList pts) (VG.fromList ptail)
+    reduce [] = VG.empty
 
 
 -- | Raise arity of a tool.
@@ -273,21 +279,15 @@ raise (Tool act') = Tool $
                 Just (bbox, commit)
 
 
--- | Class of tool input arities for which an @n@-ary input may be
--- tranformed (exploded) into a vector of @(n-1)@-ary inputs.
-class Explode higher lower where
-    reduce :: higher -> V.Vector lower
+-- | Apply a tool along a line given by two endpoints.
+line :: Tool SP -> Tool DP
+line = raise
 
 
-instance Explode DP SP where
-    reduce (Z :. p1y :. p1x, Z :. p2y :. p2x) =
-        VG.map (\(y, x) -> R.ix2 y x) $
-        bresenham (p1x, p1y) (p2x, p2y)
-
-
-instance Explode [SP] DP where
-    reduce pts@(_:ptail) = VG.zip (VG.fromList pts) (VG.fromList ptail)
-    reduce [] = VG.empty
+-- | Apply a tool along lines of a polygon given by vertices, in that
+-- order.
+polygon :: Tool DP -> Tool [SP]
+polygon = raise
 
 
 -- | Apply a tool to a canvas without checking of bounds and locks.
