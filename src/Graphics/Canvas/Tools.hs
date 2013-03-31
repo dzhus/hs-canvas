@@ -252,7 +252,7 @@ polygon = raise
 
 
 -- | Raise arity of a tool.
-raise :: (Reduce b a) => Tool a -> Tool b
+raise :: (Explode b a) => Tool a -> Tool b
 raise (Tool act') = Tool $
     \input canvas ->
         let
@@ -265,7 +265,7 @@ raise (Tool act') = Tool $
           then Nothing
           else
               let
-                  -- Cumulative commit
+                  -- Cumulative commit (applied sequentially)
                   commit = \canvas' -> VG.mapM_ (\(_, a) -> a canvas') bcs
                   -- Cumulative bounding box
                   bbox = VG.foldl1 joinBBox $ VG.map fst bcs
@@ -273,18 +273,21 @@ raise (Tool act') = Tool $
                 Just (bbox, commit)
 
 
-class Reduce higher lower where
+-- | Class of tool input arities for which an @n@-ary input may be
+-- tranformed (exploded) into a vector of @(n-1)@-ary inputs.
+class Explode higher lower where
     reduce :: higher -> V.Vector lower
 
 
-instance Reduce DP SP where
+instance Explode DP SP where
     reduce (Z :. p1y :. p1x, Z :. p2y :. p2x) =
         VG.map (\(y, x) -> R.ix2 y x) $
         bresenham (p1x, p1y) (p2x, p2y)
 
 
-instance Reduce [SP] DP where
+instance Explode [SP] DP where
     reduce pts@(_:ptail) = VG.zip (VG.fromList pts) (VG.fromList ptail)
+    reduce [] = VG.empty
 
 
 -- | Apply a tool to a canvas without checking of bounds and locks.
