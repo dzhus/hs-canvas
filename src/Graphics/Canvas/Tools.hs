@@ -135,8 +135,8 @@ brushOperation !pixelData !pixelMask =
                           else arr' ! pt
                           where
                             p' = (Z :. y' :. x')
-                            y' = yb - yt + yc
-                            x' = xb - xt + xc
+                            y' = yb + yt - yc
+                            x' = xb + xt - xc
                       {-# INLINE sourceFunction #-}
                       !fullShape@(Z :. _ :. (I# width)) = extent arr'
                       !(Z :. (I# h0) :. (I# w0)) = bboxExtent bb
