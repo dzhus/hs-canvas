@@ -238,11 +238,11 @@ nib :: Int
 nib w t phi value = Tool $ brushOperation pixelData pixelMask
     where
       w' = fromIntegral w
-      px = round $ w' * sin phi
-      py = round $ w' * cos phi
-      ex = R.ix2 (max 1 $ abs px) (max 1 $ abs py)
+      py = round $ w' * sin phi
+      px = round $ w' * cos phi
+      ex = R.ix2 (max 1 $ abs py) (max 1 $ abs px)
       pixelData = fromUnboxed ex $ VG.replicate (size ex) value
-      !nibPoints = bresenham (0, 0) (px, py)
+      !nibPoints = bresenham (0, 0) (py, px)
       pixelMask = computeUnboxedS $ fromFunction ex $
                   \(Z :. y :. x) -> VU.elem (y, x) nibPoints
 
@@ -275,7 +275,7 @@ class Explode higher lower where
 instance Explode DP SP where
     reduce (Z :. p1y :. p1x, Z :. p2y :. p2x) =
         VG.map (\(y, x) -> R.ix2 y x) $
-        bresenham (p1x, p1y) (p2x, p2y)
+        bresenham (p1y, p1x) (p2y, p2x)
 
 
 instance Explode [SP] DP where
